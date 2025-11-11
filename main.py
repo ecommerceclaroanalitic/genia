@@ -55,14 +55,12 @@ def generar_speech_producto(nombre, descripcion=None, beneficios=None, tono="emo
     """Genera un texto publicitario con Gemini"""
     prompt = f"""
     Eres un experto en marketing digital y narración comercial.
-    Crea un speech breve, natural y convincente para promocionar el siguiente producto de una tienda online.
+    Crea un mensaje paraun popup breve, coloquial agradable, natural y convincente para promocionar el siguiente producto de una tienda online.
 
     🛍️ Producto: {nombre}
     📝 Descripción: {descripcion or "No disponible"}
     ✅ Beneficios: {beneficios or "No especificados"}
 
-    Tono: {tono}.
-    Duración aproximada: 30 a 60 segundos.
     Lenguaje: español neutro.
     """
 
@@ -81,17 +79,13 @@ def generar_cache_diaria():
     beneficios = "Alta demanda y preferido por nuestros clientes."
     speech = generar_speech_producto(producto, descripcion, beneficios)
 
-    # Guardar audio
-    audio_filename = f"speech_{producto.replace(' ', '_')}.mp3"
-    tts = gTTS(speech, lang='es')
-    tts.save(audio_filename)
+
 
     data = {
         "fecha": datetime.today().strftime("%Y-%m-%d"),
         "producto": producto,
         "ingresos": ingresos,
         "speech": speech,
-        "audio_file": audio_filename
     }
 
     with open(CACHE_FILE, "w", encoding="utf-8") as f:
