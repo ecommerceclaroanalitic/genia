@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import os, json
 from google.analytics.data_v1beta import BetaAnalyticsDataClient, types
 import google.generativeai as genai
+from fastapi.middleware.cors import CORSMiddleware
 from gtts import gTTS
 
 # ==============================================
@@ -18,7 +19,16 @@ GOOGLE_API_KEY = "AIzaSyBDkfkuJFnr0YEMzN3fRPt1XldlVsCku-Q"
 genai.configure(api_key=GOOGLE_API_KEY)
 
 app = FastAPI(title="Daily Speech API", version="1.0")
-
+# ==============================================
+# 🔹 CORS (permite solicitudes desde el sitio de Claro)
+# ==============================================
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://tienda.claro.com.co"],  # dominio autorizado
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ==============================================
 # 🔹 CLIENTE GA4 (manejo seguro)
 # ==============================================
