@@ -72,8 +72,20 @@ def obtener_producto_top():
     ingresos = float(response.rows[0].metric_values[0].value)
     return producto, ingresos
 
+def formatear_nombre_usuario(nombre_raw: str) -> str:
+    """Devuelve solo el primer nombre, con la primera letra en mayúscula."""
+    if not nombre_raw:
+        return ""
+    nombre = nombre_raw.strip().split(" ")[0]  # toma solo la primera palabra
+    return nombre.capitalize()  # primera letra mayúscula, resto minúscula
 
-def generar_speech_producto(nombre, descripcion=None, beneficios=None):
+def generar_speech_producto(nombre, descripcion=None, beneficios=None, user_name=None):
+
+    """Genera un texto publicitario con Gemini, personalizado si se recibe un nombre."""
+    nombre_usuario = formatear_nombre_usuario(user_name)
+
+    saludo = f"Saluda al usuario llamado {nombre_usuario} de forma natural en el mensaje." if nombre_usuario else ""
+
     """Genera un texto publicitario con Gemini"""
     prompt = f"""
     Eres un experto en marketing digital y narración comercial.
@@ -82,6 +94,8 @@ def generar_speech_producto(nombre, descripcion=None, beneficios=None):
     🛍️ Producto: {nombre}
     📝 Descripción: {descripcion or "No disponible"}
     ✅ Beneficios: {beneficios or "No especificados"}
+
+     {saludo}
 
     Lenguaje: español neutro.
     """
@@ -149,7 +163,8 @@ def generate_speech_endpoint(user_name: str = None):
             cache = generar_cache_diaria()
            # Personalizar mensaje con el nombre (si lo hay)
         if user_name:
-            cache["speech"] = f"¡Hola {user_name}! {cache['speech']}"
+            nombre = formatear_nombre_usuario(user_name)
+            cache["speech"] = f"¡Hola {nombre}! {cache['speech']}"
 
         return cache
 
