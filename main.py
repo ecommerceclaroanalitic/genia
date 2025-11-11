@@ -139,7 +139,7 @@ def root():
 
 
 @app.get("/generate-speech")
-def generate_speech_endpoint():
+def generate_speech_endpoint(user_name: str = None):
     """Devuelve el speech del producto más vendido del día (usa cache diaria)"""
     try:
         cache = cargar_cache()
@@ -147,6 +147,9 @@ def generate_speech_endpoint():
         # Si no existe o está desactualizado → regenerar
         if cache_desactualizado(cache):
             cache = generar_cache_diaria()
+           # Personalizar mensaje con el nombre (si lo hay)
+        if user_name:
+            cache["speech"] = f"¡Hola {user_name}! {cache['speech']}"
 
         return cache
 
