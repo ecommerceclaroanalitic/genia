@@ -1,17 +1,17 @@
 # Servidor web
-fastapi
-uvicorn[standard]
+fastapi==0.115.0
+uvicorn[standard]==0.30.1
 
 # Google APIs
-google-analytics-data
-google-generativeai
+google-analytics-data==0.18.0
+google-generativeai==0.7.2
 
 # Texto a voz
-gtts
+gtts==2.5.1
 
 # Utilidades
-pandas
-python-dateutil
+pandas==2.2.3
+python-dateutil==2.9.0.post0
 
-# Manejo de variables de entorno
-python-dotenv
+# Variables de entorno
+python-dotenv==1.0.1
