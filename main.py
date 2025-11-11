@@ -16,15 +16,27 @@ CACHE_FILE = "speech_cache.json"
 
 GOOGLE_API_KEY = "AIzaSyBDkfkuJFnr0YEMzN3fRPt1XldlVsCku-Q"
 genai.configure(api_key=GOOGLE_API_KEY)
-client = BetaAnalyticsDataClient.from_service_account_file(PATH_CREDENTIALS)
 
 app = FastAPI(title="Daily Speech API", version="1.0")
+
+# ==============================================
+# 🔹 CLIENTE GA4 (manejo seguro)
+# ==============================================
+if os.path.exists(PATH_CREDENTIALS):
+    client = BetaAnalyticsDataClient.from_service_account_file(PATH_CREDENTIALS)
+else:
+    client = None
+    print("⚠️ Advertencia: No se encontró el archivo credentials.json, se usará modo sin conexión a GA4.")
 
 # ==============================================
 # 🔹 FUNCIONES AUXILIARES
 # ==============================================
 def obtener_producto_top():
     """Consulta GA4 por el producto más vendido del día anterior"""
+    if client is None:
+        # Si no hay credenciales, usar un producto simulado
+        return "Producto de prueba", 15000.0
+
     ayer = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
 
     request = types.RunReportRequest(
@@ -51,11 +63,12 @@ def obtener_producto_top():
     return producto, ingresos
 
 
-def generar_speech_producto(nombre, descripcion=None, beneficios=None, tono="emocional y persuasivo"):
+def generar_speech_producto(nombre, descripcion=None, beneficios=None):
     """Genera un texto publicitario con Gemini"""
     prompt = f"""
     Eres un experto en marketing digital y narración comercial.
-    Crea un mensaje paraun popup breve, coloquial agradable, natural y convincente para promocionar el siguiente producto de una tienda online.
+    Crea un mensaje para un popup breve, natural, agradable y convincente
+    para promocionar el siguiente producto de una tienda online.
 
     🛍️ Producto: {nombre}
     📝 Descripción: {descripcion or "No disponible"}
@@ -78,8 +91,6 @@ def generar_cache_diaria():
     descripcion = f"Producto destacado con ventas de ${ingresos:,.2f} el día anterior."
     beneficios = "Alta demanda y preferido por nuestros clientes."
     speech = generar_speech_producto(producto, descripcion, beneficios)
-
-
 
     data = {
         "fecha": datetime.today().strftime("%Y-%m-%d"),
@@ -110,17 +121,21 @@ def cache_desactualizado(cache):
 
 
 # ==============================================
-# 🔹 ENDPOINT: /generate-speech
+# 🔹 ENDPOINTS
 # ==============================================
+@app.get("/")
+def root():
+    """Health check para Render"""
+    return {"status": "ok", "message": "API de pop-up lista 🚀"}
+
+
 @app.get("/generate-speech")
 def generate_speech_endpoint():
-    """
-    Devuelve el speech del producto más vendido del día (sin consultar GA4 en cada request).
-    """
+    """Devuelve el speech del producto más vendido del día (usa cache diaria)"""
     try:
         cache = cargar_cache()
 
-        # Si no existe o es de otro día → regenerar
+        # Si no existe o está desactualizado → regenerar
         if cache_desactualizado(cache):
             cache = generar_cache_diaria()
 
@@ -130,21 +145,17 @@ def generate_speech_endpoint():
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-# ==============================================
-# 🔹 OPCIONAL: /update-cache (para forzar actualización manual)
-# ==============================================
 @app.get("/update-cache")
 def update_cache():
-    """
-    Permite regenerar manualmente la cache (por ejemplo, vía cron o endpoint protegido).
-    """
+    """Permite regenerar manualmente la cache"""
     try:
         data = generar_cache_diaria()
         return {"status": "ok", "message": "Cache actualizada correctamente", "producto": data["producto"]}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+
 # ==============================================
-# 🔹 Ejecución local
+# 🔹 Ejecución local (para desarrollo)
 # ==============================================
-# uvicorn main:app --reload
+# uvicorn main:app --host 0.0.0.0 --port 10000
