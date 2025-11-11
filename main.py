@@ -25,10 +25,7 @@ app = FastAPI(title="Daily Speech API", version="1.0")
 # ==============================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://tienda.claro.com.co",
-        "https://www.tienda.claro.com.co",
-        "https://tagmanager.google.com",
-        "https://*.googletagmanager.com"],  # dominio autorizado
+    allow_origins=["*"],  # dominio autorizado
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
