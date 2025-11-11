@@ -77,8 +77,7 @@ def generar_speech_producto(nombre, descripcion=None, beneficios=None):
     """Genera un texto publicitario con Gemini"""
     prompt = f"""
     Eres un experto en marketing digital y narración comercial.
-    Crea un mensaje para un popup breve, natural, agradable y convincente
-    para promocionar el siguiente producto de una tienda online.
+    Crea un mensaje para un popup breve, natural, agradable y convincente, y sit iene emojis deja solo el emoji sin ninguna descricion, el mensaje tal cual para copiar y pegar y solo un opción, pues ese mensaje tiene una integracion directa con mi sitio web, para promocionar el siguiente producto de una tienda online.
 
     🛍️ Producto: {nombre}
     📝 Descripción: {descripcion or "No disponible"}
