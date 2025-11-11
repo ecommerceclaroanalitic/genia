@@ -1,0 +1,17 @@
+# Servidor web
+fastapi
+uvicorn[standard]
+
+# Google APIs
+google-analytics-data
+google-generativeai
+
+# Texto a voz
+gtts
+
+# Utilidades
+pandas
+python-dateutil
+
+# Manejo de variables de entorno
+python-dotenv
