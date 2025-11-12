@@ -29,17 +29,22 @@ app = FastAPI(title="Daily Speech API", version="1.0")
 # ==============================================
 # 🔹 CORS (permite solicitudes desde el sitio de Claro)
 # ==============================================
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+# --- ⚙️ Configuración CORS (colócala justo después de crear `app`) ---
+origins = [
     "https://tienda.claro.com.co",
     "https://www.tienda.claro.com.co",
     "https://pop-up-tienda-claro.onrender.com",
-    "*",],  # dominio autorizado
+    "*",  # para pruebas; puedes quitarlo en producción
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
 # ==============================================
 # 🔹 CLIENTE GA4 (manejo seguro)
 # ==============================================
