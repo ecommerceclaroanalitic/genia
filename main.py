@@ -7,10 +7,16 @@ from google.analytics.data_v1beta import BetaAnalyticsDataClient, types
 import google.generativeai as genai
 from fastapi.middleware.cors import CORSMiddleware
 from gtts import gTTS
+from google.cloud import storage
 
 # ==============================================
 # 🔹 CONFIGURACIÓN
 # ==============================================
+
+BUCKET_NAME = "speech_cache"
+CACHE_FILE = "speech_cache.json"  # Nombre dentro del bucket
+LOCAL_CACHE = "/tmp/speech_cache.json"  # Temporal en el contenedor
+
 PROPERTY_ID = "337084916"
 PATH_CREDENTIALS = "credentials.json"
 MODEL_NAME = "models/gemini-2.5-flash"
@@ -123,18 +129,47 @@ def generar_cache_diaria():
         "speech": speech,
     }
 
-    with open(CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
+    guardar_cache_gcs(data)
     return data
 
 
+def get_storage_client():
+    """Devuelve cliente autenticado de Google Cloud Storage"""
+    return storage.Client.from_service_account_json(PATH_CREDENTIALS)
+
+
 def cargar_cache():
-    """Lee el archivo de cache si existe"""
-    if not os.path.exists(CACHE_FILE):
+    """Lee cache desde el bucket de Google Cloud Storage"""
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(CACHE_FILE)
+
+        if not blob.exists():
+            return None
+
+        contenido = blob.download_as_text(encoding="utf-8")
+        return json.loads(contenido)
+
+    except Exception as e:
+        print("⚠️ Error cargando cache desde GCS:", e)
         return None
-    with open(CACHE_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+
+
+def guardar_cache_gcs(data):
+    """Guarda el cache en el bucket"""
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(CACHE_FILE)
+
+        blob.upload_from_string(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            content_type="application/json"
+        )
+        print("✅ Cache actualizado en GCS.")
+    except Exception as e:
+        print("⚠️ Error subiendo cache a GCS:", e)
 
 
 def cache_desactualizado(cache):
