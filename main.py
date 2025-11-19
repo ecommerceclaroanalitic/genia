@@ -84,7 +84,7 @@ def obtener_producto_top():
     if not response.rows:
         return None, None
 
-    producto = response.rows[0].dimension_values[0].value
+    producto = response.rows[1].dimension_values[0].value
     ingresos = float(response.rows[0].metric_values[0].value)
     return producto, ingresos
 
@@ -105,7 +105,7 @@ def generar_speech_producto(nombre, descripcion=None, beneficios=None, user_name
     """Genera un texto publicitario con Gemini"""
     prompt = f"""
     Eres un experto en marketing digital y narración comercial.
-    Crea un mensaje para un popup con las siguientes caracterisiticas: breve, natural, agradable, convincente, y si tiene emojis deja solo el emoji sin ninguna descricion, el mensaje tal cual para copiar y pegar y solo un opción pues ese mensaje tiene una integracion directa con mi sitio web, para promocionar el siguiente producto de una tienda online, ademas evoita dejar copmentarios como, claroq eu si aqui esta el speech, y tambien evtia coocar valores pues esa es informaicon interna de la empresa, ademas redactalo de tal manera que se exalte una experiencia para la vida y que este acorde con la epoca del año en colombia, y dentro del mensaje deja resaltado el nombre del producto y en lo posible el mensaje debe estar acorde con el genero del nombre o dejarlo de manera mas generica, y tambien tener en cuenta que estamos cerca a la temporada navideña, mencionar que es el producto mas vendido
+    Crea un mensaje para un popup con las siguientes caracterisiticas: breve, natural, agradable, convincente, y si tiene emojis deja solo el emoji sin ninguna descricion, el mensaje tal cual para copiar y pegar y solo un opción pues ese mensaje tiene una integracion directa con mi sitio web, para promocionar el siguiente producto de una tienda online, ademas evoita dejar copmentarios como, claroq eu si aqui esta el speech, y tambien evtia coocar valores pues esa es informaicon interna de la empresa, ademas redactalo de tal manera que se exalte una experiencia para la vida y que este acorde con la epoca del año en colombia, y dentro del mensaje deja resaltado el nombre del producto y en lo posible el mensaje debe estar acorde con el genero del nombre o dejarlo de manera mas generica, y tambien tener en cuenta que estamos cerca a la temporada navideña, mencionar que es el producto mas vendido y deb tenr una longitud maxima de 15 palabras
 
     🛍️ Producto: {nombre}
     📝 Descripción: {descripcion or "No disponible"}
