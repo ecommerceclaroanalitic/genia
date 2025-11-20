@@ -8,6 +8,7 @@ import google.generativeai as genai
 from fastapi.middleware.cors import CORSMiddleware
 from gtts import gTTS
 from google.cloud import storage
+import random
 
 # ==============================================
 # 🔹 CONFIGURACIÓN
@@ -19,7 +20,7 @@ LOCAL_CACHE = "/tmp/speech_cache.json"  # Temporal en el contenedor
 
 PROPERTY_ID = "337084916"
 PATH_CREDENTIALS = "credentials.json"
-MODEL_NAME = "models/gemini-2.5-flash"
+MODEL_NAME = "models/gemini-2.0-flash"
 CACHE_FILE = "speech_cache.json"
 
 GOOGLE_API_KEY = "AIzaSyBDkfkuJFnr0YEMzN3fRPt1XldlVsCku-Q"
@@ -57,11 +58,16 @@ else:
 # ==============================================
 # 🔹 FUNCIONES AUXILIARES
 # ==============================================
-def obtener_producto_top():
-    """Consulta GA4 por el producto más vendido del día anterior"""
+def obtener_productos_top5():
+    """Consulta GA4 por el top 5 productos del día anterior"""
     if client is None:
-        # Si no hay credenciales, usar un producto simulado
-        return "Producto de prueba", 15000.0
+        return [
+            {"producto": "Producto A", "ingresos": 15000.0},
+            {"producto": "Producto B", "ingresos": 12000.0},
+            {"producto": "Producto C", "ingresos": 9000.0},
+            {"producto": "Producto D", "ingresos": 8500.0},
+            {"producto": "Producto E", "ingresos": 8000.0},
+        ]
 
     ayer = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
 
@@ -76,17 +82,20 @@ def obtener_producto_top():
                 desc=True
             )
         ],
-        limit=1
+        limit=5
     )
 
     response = client.run_report(request)
+    top5 = []
 
-    if not response.rows:
-        return None, None
+    for row in response.rows:
+        top5.append({
+            "producto": row.dimension_values[0].value,
+            "ingresos": float(row.metric_values[0].value)
+        })
 
-    producto = response.rows[1].dimension_values[0].value
-    ingresos = float(response.rows[0].metric_values[0].value)
-    return producto, ingresos
+    return top5
+
 
 def formatear_nombre_usuario(nombre_raw: str) -> str:
     """Devuelve solo el primer nombre, con la primera letra en mayúscula."""
@@ -96,22 +105,24 @@ def formatear_nombre_usuario(nombre_raw: str) -> str:
     return nombre.capitalize()  # primera letra mayúscula, resto minúscula
 
 def generar_speech_producto(nombre, descripcion=None, beneficios=None, user_name=None):
-
-    """Genera un texto publicitario con Gemini, personalizado si se recibe un nombre."""
+    """Genera un speech para un producto específico"""
     nombre_usuario = formatear_nombre_usuario(user_name)
+    saludo = f"Saluda al usuario llamado {nombre_usuario} de forma natural." if nombre_usuario else ""
 
-    saludo = f"Saluda al usuario llamado {nombre_usuario} de forma natural en el mensaje." if nombre_usuario else ""
-
-    """Genera un texto publicitario con Gemini"""
     prompt = f"""
-    Eres un experto en marketing digital y narración comercial.
-    Crea un mensaje para un popup con las siguientes caracterisiticas: breve, natural, agradable, convincente, y si tiene emojis deja solo el emoji sin ninguna descricion, el mensaje tal cual para copiar y pegar y solo un opción pues ese mensaje tiene una integracion directa con mi sitio web, para promocionar el siguiente producto de una tienda online, ademas evoita dejar copmentarios como, claroq eu si aqui esta el speech, y tambien evtia coocar valores pues esa es informaicon interna de la empresa, ademas redactalo de tal manera que se exalte una experiencia para la vida y que este acorde con la epoca del año en colombia, y dentro del mensaje deja resaltado el nombre del producto y en lo posible el mensaje debe estar acorde con el genero del nombre o dejarlo de manera mas generica, y tambien tener en cuenta que estamos cerca a la temporada navideña, mencionar que es el producto mas vendido y deb tenr una longitud maxima de 15 palabras
+    Eres un experto en marketing digital.
+    Crea un mensaje para popup: breve, natural, convincente, máximo 15 palabras.
+    Debe mencionar que esta entre los productos más vendidos y populares.
+    No incluyas valores numéricos.
+    No incluyas explicaciones ni comentarios.
+    Se debe incluir que estamos en las fiestas de fin de año y navidad y que genere algun sentimeinto de buena vibra
+    Texto final listo para pegar.
+    
+    Producto: {nombre}
+    Descripción: {descripcion or "No disponible"}
+    Beneficios: {beneficios or "No especificados"}
 
-    🛍️ Producto: {nombre}
-    📝 Descripción: {descripcion or "No disponible"}
-    ✅ Beneficios: {beneficios or "No especificados"}
-
-     {saludo}
+    {saludo}
 
     Lenguaje: español neutro.
     """
@@ -122,20 +133,31 @@ def generar_speech_producto(nombre, descripcion=None, beneficios=None, user_name
 
 
 def generar_cache_diaria():
-    """Consulta GA4 y genera nuevo cache diario"""
-    producto, ingresos = obtener_producto_top()
-    if not producto:
-        raise ValueError("No se encontró producto más vendido.")
+    """Genera cache con speech para cada uno de los top 5"""
 
-    descripcion = f"Producto destacado con ventas de ${ingresos:,.2f} el día anterior."
-    beneficios = "Alta demanda y preferido por nuestros clientes."
-    speech = generar_speech_producto(producto, descripcion, beneficios)
+    top5 = obtener_productos_top5()
+    if not top5:
+        raise ValueError("No se encontraron productos.")
+
+    speeches = []
+
+    for item in top5:
+        nombre = item["producto"]
+        ingresos = item["ingresos"]
+
+        descripcion = "Producto destacado del día anterior."
+        beneficios = "Muy solicitado por los usuarios."
+
+        speech = generar_speech_producto(nombre, descripcion, beneficios)
+
+        speeches.append({
+            "producto": nombre,
+            "speech": speech
+        })
 
     data = {
         "fecha": datetime.today().strftime("%Y-%m-%d"),
-        "producto": producto,
-        "ingresos": ingresos,
-        "speech": speech,
+        "speeches": speeches  # ← ahora guarda varios
     }
 
     guardar_cache_gcs(data)
@@ -199,30 +221,36 @@ def root():
 
 @app.get("/generate-speech")
 def generate_speech_endpoint(user_name: str = None):
-    """Devuelve el speech del producto más vendido del día (usa cache diaria)"""
     try:
         cache = cargar_cache()
 
-        # Si no existe o está desactualizado → regenerar
         if cache_desactualizado(cache):
             cache = generar_cache_diaria()
-           # Personalizar mensaje con el nombre (si lo hay)
+
+        # Elegir 1 speech random
+        speech_item = random.choice(cache["speeches"])
+
+        speech_final = speech_item["speech"]
+
+        # Personalización con nombre
         if user_name:
             nombre = formatear_nombre_usuario(user_name)
-            cache["speech"] = f"¡Hola {nombre}! {cache['speech']}"
+            speech_final = f"¡Hola {nombre}! {speech_final}"
 
-        return cache
+        return {
+            "producto": speech_item["producto"],
+            "speech": speech_final
+        }
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
-
 
 @app.get("/update-cache")
 def update_cache():
     """Permite regenerar manualmente la cache"""
     try:
         data = generar_cache_diaria()
-        return {"status": "ok", "message": "Cache actualizada correctamente", "producto": data["producto"]}
+        return {"status": "ok", "message": "Cache actualizada correctamente"}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
