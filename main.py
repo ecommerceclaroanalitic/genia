@@ -19,7 +19,7 @@ CACHE_FILE = "speech_cache.json"  # Nombre dentro del bucket
 LOCAL_CACHE = "/tmp/speech_cache.json"  # Temporal en el contenedor
 
 PROPERTY_ID = "337084916"
-PATH_CREDENTIALS = os.getenv("var_crendential64B")
+PATH_CREDENTIALS = "/etc/secrets/credentials.json"
 MODEL_NAME = "models/gemini-2.0-flash"
 CACHE_FILE = "speech_cache.json"
 
