@@ -115,6 +115,7 @@ def generar_speech_producto(nombre, descripcion=None, beneficios=None, user_name
     Debe mencionar que esta entre los productos más vendidos y populares.
     No incluyas valores numéricos.
     No incluir palabras de sobrepromesas y que todo mensaje este relacionado con que es una caracteristica de tienda claro.
+    No incluyas palbras como perfecto, lo mejor, para evitar desprestigiar otras marcas.
     No incluyas explicaciones ni comentarios.
     Se debe incluir que estamos en las fiestas de fin de año y navidad y que genere algun sentimeinto de buena vibra
     Texto final listo para pegar.
