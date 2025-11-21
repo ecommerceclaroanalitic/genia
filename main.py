@@ -23,7 +23,7 @@ PATH_CREDENTIALS = "/etc/secrets/credentials.json"
 MODEL_NAME = "models/gemini-2.0-flash"
 CACHE_FILE = "speech_cache.json"
 
-GOOGLE_API_KEY = "AIzaSyBDkfkuJFnr0YEMzN3fRPt1XldlVsCku-Q"
+GOOGLE_API_KEY = os.getenv("API_KEY_GEMINI")
 genai.configure(api_key=GOOGLE_API_KEY)
 
 app = FastAPI(title="Daily Speech API", version="1.0")
