@@ -20,7 +20,7 @@ LOCAL_CACHE = "/tmp/speech_cache.json"  # Temporal en el contenedor
 
 PROPERTY_ID = "337084916"
 PATH_CREDENTIALS = "/etc/secrets/credentials.json"
-MODEL_NAME = "models/gemini-2.0-flash"
+MODEL_NAME = "models/gemini-2.5-flash"
 CACHE_FILE = "speech_cache.json"
 
 GOOGLE_API_KEY = os.getenv("API_KEY_GEMINI")
