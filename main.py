@@ -224,7 +224,9 @@ def root():
 @app.get("/generate-speech")
 def generate_speech_endpoint(user_name: str = None):
     try:
+        print("📌 /generate-speech llamado")
         cache = cargar_cache()
+        print("📌 Resultado cargar_cache =", cache)
 
         if cache_desactualizado(cache):
             cache = generar_cache_diaria()
