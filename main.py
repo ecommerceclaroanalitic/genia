@@ -224,19 +224,27 @@ def root():
 @app.get("/generate-speech")
 def generate_speech_endpoint(user_name: str = None):
     try:
-        print("📌 /generate-speech llamado")
         cache = cargar_cache()
-        print("📌 Resultado cargar_cache =", cache)
 
+        # Si no hay cache o está desactualizado, PERO SOLO regeneramos si no es 429
         if cache_desactualizado(cache):
-            cache = generar_cache_diaria()
+            try:
+                cache = generar_cache_diaria()
+            except Exception as e:
+                print("❌ ERROR generando cache:", str(e))
+                print("⚠️ Usando cache viejo para evitar caída.")
+                # si hay cache viejo: usamos ese
+                if cache:
+                    pass
+                else:
+                    return JSONResponse(
+                        status_code=500,
+                        content={"error": "No se pudo generar cache y no existe uno previo."}
+                    )
 
-        # Elegir 1 speech random
         speech_item = random.choice(cache["speeches"])
-
         speech_final = speech_item["speech"]
 
-        # Personalización con nombre
         if user_name:
             nombre = formatear_nombre_usuario(user_name)
             speech_final = f"¡Hola {nombre}! {speech_final}"
@@ -248,6 +256,7 @@ def generate_speech_endpoint(user_name: str = None):
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
 
 @app.get("/update-cache")
 def update_cache():
