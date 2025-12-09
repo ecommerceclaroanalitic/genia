@@ -185,7 +185,7 @@ def cargar_cache():
         return json.loads(contenido)
 
     except Exception as e:
-        print("⚠️ Error cargando cache desde GCS:", e)
+        print("❌ ERROR cargar_cache:", type(e).__name__, str(e))
         return None
 
 
@@ -202,7 +202,7 @@ def guardar_cache_gcs(data):
         )
         print("✅ Cache actualizado en GCS.")
     except Exception as e:
-        print("⚠️ Error subiendo cache a GCS:", e)
+        print("❌ ERROR guardar_cache:", type(e).__name__, str(e))
 
 
 def cache_desactualizado(cache):
