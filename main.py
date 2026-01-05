@@ -117,7 +117,7 @@ def generar_speech_producto(nombre, descripcion=None, beneficios=None, user_name
     No incluir palabras de sobrepromesas y que todo mensaje este relacionado con que es una caracteristica de tienda claro.
     No incluyas palbras como perfecto, lo mejor, para evitar desprestigiar otras marcas.
     No incluyas explicaciones ni comentarios.
-    Se debe incluir que estamos en la epoca de las fiestas de fin de año, estamos porximos al 2026 y que genere algun sentimeinto de buena vibra
+    Se debe incluir que estamos ya estamos en el año nuevo 2026, que genere algun sentimeinto de buena vibra
     Texto final listo para pegar.
     
     Producto: {nombre}
