@@ -59,7 +59,7 @@ else:
 # 🔹 FUNCIONES AUXILIARES
 # ==============================================
 def obtener_productos_top5():
-    """Consulta GA4 por el top 5 productos del día anterior"""
+    """Consulta GA4 por el top 5 productos del día anterior filtrados por business_unit2 = tablets"""
     if client is None:
         return [
             {"producto": "Producto A", "ingresos": 15000.0},
@@ -73,12 +73,30 @@ def obtener_productos_top5():
 
     request = types.RunReportRequest(
         property=f"properties/{PROPERTY_ID}",
-        dimensions=[types.Dimension(name="itemName")],
-        metrics=[types.Metric(name="itemRevenue")],
-        date_ranges=[types.DateRange(start_date=ayer, end_date=ayer)],
+        dimensions=[
+            types.Dimension(name="itemName"),
+        ],
+        metrics=[
+            types.Metric(name="itemRevenue"),
+        ],
+        date_ranges=[
+            types.DateRange(start_date=ayer, end_date=ayer)
+        ],
+        # 🔥 FILTRO POR business_unit2 = tablets
+        dimension_filter=types.FilterExpression(
+            filter=types.Filter(
+                field_name="business_unit2",
+                string_filter=types.Filter.StringFilter(
+                    value="tablets",
+                    match_type=types.Filter.StringFilter.MatchType.EXACT
+                )
+            )
+        ),
         order_bys=[
             types.OrderBy(
-                metric=types.OrderBy.MetricOrderBy(metric_name="itemRevenue"),
+                metric=types.OrderBy.MetricOrderBy(
+                    metric_name="itemRevenue"
+                ),
                 desc=True
             )
         ],
@@ -95,6 +113,7 @@ def obtener_productos_top5():
         })
 
     return top5
+
 
 
 def formatear_nombre_usuario(nombre_raw: str) -> str:
@@ -117,7 +136,7 @@ def generar_speech_producto(nombre, descripcion=None, beneficios=None, user_name
     No incluir palabras de sobrepromesas y que todo mensaje este relacionado con que es una caracteristica de tienda claro.
     No incluyas palbras como perfecto, lo mejor, para evitar desprestigiar otras marcas.
     No incluyas explicaciones ni comentarios.
-    Se debe incluir que estamos ya estamos en el año nuevo 2026, que genere algun sentimeinto de buena vibra
+    Se debe incluir que estamos ya estamos iniciando el año 2026, que ya casi vamos a iniciar las clases, que genere algun sentimiento de buena vibra
     Texto final listo para pegar.
     
     Producto: {nombre}
