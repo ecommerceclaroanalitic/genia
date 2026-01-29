@@ -36,62 +36,6 @@ creds = Credentials.from_service_account_file(PATH_CREDENTIALS, scopes=SCOPES)
 # ==============================================
 records = []  # Se cargará con el scheduler
 
-def actualizar_cache_con_sheets():
-    """
-    Actualiza el cache existente con los datos más recientes de Google Sheets
-    SIN volver a consultar GA4 (mantiene los mismos productos y orden)
-    """
-    try:
-        # Cargar cache actual
-        cache = cargar_cache()
-        if not cache or not cache.get("productos"):
-            print("⚠️ No hay cache para actualizar con datos de Sheets")
-            return
-        
-        print(f"🔄 Actualizando cache con datos frescos de Sheets...")
-        productos_actualizados = []
-        
-        for producto in cache["productos"]:
-            nombre_producto = producto["producto"]
-            
-            # Buscar datos actualizados en Sheets
-            datos_sheet = buscar_datos_producto(nombre_producto)
-            
-            # Actualizar solo los campos que vienen de Sheets
-            producto["imagen"] = datos_sheet["imagen"]
-            producto["url"] = datos_sheet["enlace"]
-            producto["precio"] = datos_sheet["precio"]
-            producto["titulo"] = datos_sheet["titulo"]
-            # Mantener: categoria, ingresos, speech (estos vienen de GA4/Gemini)
-            
-            productos_actualizados.append(producto)
-        
-        # Actualizar cache con datos frescos
-        cache["productos"] = productos_actualizados
-        cache["ultima_actualizacion_sheets"] = datetime.now().isoformat()
-        
-        guardar_cache_gcs(cache)
-        print(f"✅ Cache actualizado con datos de Sheets: {len(productos_actualizados)} productos")
-        
-    except Exception as e:
-        print(f"❌ ERROR actualizando cache con Sheets: {str(e)}")
-
-
-def cargar_datos_sheets():
-    """Función para recargar datos de Google Sheets Y actualizar cache"""
-    global records
-    try:
-        gc = gspread.authorize(creds)
-        sheet = gc.open_by_key("1qM-j9LQ4aC8xjd6LOPy6Rlf4H9L01WQKL5iaZTu4Ll4").worksheet("Google Merchant Center feed - Fee Google Sheets")
-        records = sheet.get_all_records()
-        print(f"✅ Google Sheets actualizado: {len(records)} productos cargados - {datetime.now()}")
-        
-        # 🔥 ACTUALIZAR CACHE CON DATOS FRESCOS (sin consultar GA4)
-        actualizar_cache_con_sheets()
-        
-    except Exception as e:
-        print(f"❌ ERROR cargando Google Sheets: {str(e)}")
-
 # ==============================================
 # 🔹 APP + CORS
 # ==============================================
@@ -116,65 +60,6 @@ if os.path.exists(PATH_CREDENTIALS):
 else:
     client = None
     print("⚠️ GA4 en modo MOCK")
-
-# ==============================================
-# 🔹 SCHEDULER - TAREAS PROGRAMADAS
-# ==============================================
-
-scheduler = BackgroundScheduler(timezone="America/Bogota")
-
-# ✅ Tarea 1: Actualizar cache GA4 una vez al día (1:00 AM)
-def tarea_actualizar_cache_ga4():
-    print(f"🔄 [SCHEDULER] Actualizando cache GA4 - {datetime.now()}")
-    try:
-        cargar_datos_sheets()  # Primero cargar Sheets frescos
-        generar_cache_multicategoria()  # Luego generar cache completo
-        print("✅ [SCHEDULER] Cache GA4 actualizado exitosamente")
-    except Exception as e:
-        print(f"❌ [SCHEDULER] Error actualizando cache: {str(e)}")
-
-scheduler.add_job(
-    tarea_actualizar_cache_ga4,
-    CronTrigger(hour=1, minute=0),  # 1:00 AM diario
-    id="cache_ga4_diario",
-    replace_existing=True
-)
-
-# ✅ Tarea 2: Recargar Google Sheets 4 veces al día (y actualizar cache sin GA4)
-scheduler.add_job(
-    cargar_datos_sheets,
-    CronTrigger(hour=10, minute=2),  # 10:02 AM
-    id="sheets_10am",
-    replace_existing=True
-)
-
-scheduler.add_job(
-    cargar_datos_sheets,
-    CronTrigger(hour=12, minute=2),  # 12:02 PM
-    id="sheets_12pm",
-    replace_existing=True
-)
-
-scheduler.add_job(
-    cargar_datos_sheets,
-    CronTrigger(hour=14, minute=2),  # 2:02 PM
-    id="sheets_2pm",
-    replace_existing=True
-)
-
-scheduler.add_job(
-    cargar_datos_sheets,
-    CronTrigger(hour=16, minute=2),  # 4:02 PM
-    id="sheets_4pm",
-    replace_existing=True
-)
-
-# Cargar datos al iniciar la aplicación
-cargar_datos_sheets()
-
-# Iniciar el scheduler
-scheduler.start()
-print("✅ Scheduler iniciado con tareas programadas")
 
 # ==============================================
 # 🔹 FUNCIONES AUXILIARES - GCS
@@ -385,6 +270,124 @@ def generar_cache_multicategoria(user_name=None):
     
     print(f"\n✅ Cache generado exitosamente: {len(all_data)} productos totales")
     return cache_data
+
+# ==============================================
+# 🔹 ACTUALIZACIÓN DE CACHE CON SHEETS
+# ==============================================
+
+def actualizar_cache_con_sheets():
+    """
+    Actualiza el cache existente con los datos más recientes de Google Sheets
+    SIN volver a consultar GA4 (mantiene los mismos productos y orden)
+    """
+    try:
+        # Cargar cache actual
+        cache = cargar_cache()
+        if not cache or not cache.get("productos"):
+            print("⚠️ No hay cache para actualizar con datos de Sheets")
+            return
+        
+        print(f"🔄 Actualizando cache con datos frescos de Sheets...")
+        productos_actualizados = []
+        
+        for producto in cache["productos"]:
+            nombre_producto = producto["producto"]
+            
+            # Buscar datos actualizados en Sheets
+            datos_sheet = buscar_datos_producto(nombre_producto)
+            
+            # Actualizar solo los campos que vienen de Sheets
+            producto["imagen"] = datos_sheet["imagen"]
+            producto["url"] = datos_sheet["enlace"]
+            producto["precio"] = datos_sheet["precio"]
+            producto["titulo"] = datos_sheet["titulo"]
+            # Mantener: categoria, ingresos, speech (estos vienen de GA4/Gemini)
+            
+            productos_actualizados.append(producto)
+        
+        # Actualizar cache con datos frescos
+        cache["productos"] = productos_actualizados
+        cache["ultima_actualizacion_sheets"] = datetime.now().isoformat()
+        
+        guardar_cache_gcs(cache)
+        print(f"✅ Cache actualizado con datos de Sheets: {len(productos_actualizados)} productos")
+        
+    except Exception as e:
+        print(f"❌ ERROR actualizando cache con Sheets: {str(e)}")
+
+def cargar_datos_sheets():
+    """Función para recargar datos de Google Sheets Y actualizar cache"""
+    global records
+    try:
+        gc = gspread.authorize(creds)
+        sheet = gc.open_by_key("1qM-j9LQ4aC8xjd6LOPy6Rlf4H9L01WQKL5iaZTu4Ll4").worksheet("Google Merchant Center feed - Fee Google Sheets")
+        records = sheet.get_all_records()
+        print(f"✅ Google Sheets actualizado: {len(records)} productos cargados - {datetime.now()}")
+        
+        # 🔥 ACTUALIZAR CACHE CON DATOS FRESCOS (sin consultar GA4)
+        actualizar_cache_con_sheets()
+        
+    except Exception as e:
+        print(f"❌ ERROR cargando Google Sheets: {str(e)}")
+
+# ==============================================
+# 🔹 SCHEDULER - TAREAS PROGRAMADAS
+# ==============================================
+
+scheduler = BackgroundScheduler(timezone="America/Bogota")
+
+# ✅ Tarea 1: Actualizar cache GA4 una vez al día (1:00 AM)
+def tarea_actualizar_cache_ga4():
+    print(f"🔄 [SCHEDULER] Actualizando cache GA4 - {datetime.now()}")
+    try:
+        cargar_datos_sheets()  # Primero cargar Sheets frescos
+        generar_cache_multicategoria()  # Luego generar cache completo
+        print("✅ [SCHEDULER] Cache GA4 actualizado exitosamente")
+    except Exception as e:
+        print(f"❌ [SCHEDULER] Error actualizando cache: {str(e)}")
+
+scheduler.add_job(
+    tarea_actualizar_cache_ga4,
+    CronTrigger(hour=1, minute=0),  # 1:00 AM diario
+    id="cache_ga4_diario",
+    replace_existing=True
+)
+
+# ✅ Tarea 2: Recargar Google Sheets 4 veces al día (y actualizar cache sin GA4)
+scheduler.add_job(
+    cargar_datos_sheets,
+    CronTrigger(hour=10, minute=2),  # 10:02 AM
+    id="sheets_10am",
+    replace_existing=True
+)
+
+scheduler.add_job(
+    cargar_datos_sheets,
+    CronTrigger(hour=12, minute=2),  # 12:02 PM
+    id="sheets_12pm",
+    replace_existing=True
+)
+
+scheduler.add_job(
+    cargar_datos_sheets,
+    CronTrigger(hour=14, minute=2),  # 2:02 PM
+    id="sheets_2pm",
+    replace_existing=True
+)
+
+scheduler.add_job(
+    cargar_datos_sheets,
+    CronTrigger(hour=16, minute=2),  # 4:02 PM
+    id="sheets_4pm",
+    replace_existing=True
+)
+
+# Cargar datos al iniciar la aplicación
+cargar_datos_sheets()
+
+# Iniciar el scheduler
+scheduler.start()
+print("✅ Scheduler iniciado con tareas programadas")
 
 # ==============================================
 # 🔹 ENDPOINTS
